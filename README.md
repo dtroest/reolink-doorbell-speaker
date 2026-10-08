@@ -32,11 +32,16 @@ Reports of this working have mostly been for the PoE model (D340P). It also work
 | `go2rtc/go2rtc.example.yaml` | go2rtc config: API with basic auth, one stream pointing at the doorbell |
 | `go2rtc/go2rtc-doorbell.service` | systemd user service to keep go2rtc running |
 | `homeassistant/rest_command.yaml` | The call that tells go2rtc to play a file into the doorbell |
-| `homeassistant/automation.yaml` | Ring → sound outside + on Sonos inside, at the same time |
+| `homeassistant/automation.yaml` | Ring → sound outside + on Sonos inside, at the same time (see note below) |
 | `homeassistant/doorbell_sound_sensor.yaml` | *Optional.* Picks a sound by date: birthdays (fixed dates or a calendar event), Christmas, New Year, carnival, Easter (computed), Halloween… |
 | `tools/make_clip.sh` | Cut a clip from a song: trim, fade, match loudness |
 
 No sound files are included. Bring your own.
+
+**About the indoor part:** my indoor speakers are Sonos, so the automation uses `sonos.snapshot` / `sonos.restore`
+to resume whatever was playing afterwards. Those actions require the Sonos integration. The doorbell part
+(`rest_command.doorbell_speaker_play`) works on its own. Without Sonos, delete the indoor actions or replace them
+with whatever your speakers support.
 
 ## Setup
 
