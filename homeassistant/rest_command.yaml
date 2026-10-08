@@ -1,0 +1,25 @@
+# Add to configuration.yaml.
+# NOTE: rest_command is a new integration if you haven't used it before.
+# A full Home Assistant restart is required. "Reload YAML" is not enough.
+#
+# Replace GO2RTC_HOST and HA_HOST with your own addresses.
+#
+# How the URL works: POST /api/streams?dst=<stream>&src=<source> tells go2rtc to
+# play <source> into the backchannel of <stream>. `src` must be a source URL,
+# URL-encoded. Passing a stream name gives "unsupported scheme".
+#
+# Decoded, the src below is:
+#   ffmpeg:http://HA_HOST:8123/local/media/doorbell_<key>.mp3#audio=pcmu#input=file
+# - ffmpeg transcodes the MP3 to PCMU (G.711 u-law, 8 kHz mono), which the doorbell accepts
+# - #input=file makes ffmpeg read the file at normal speed instead of as fast as it can
+# - <key> comes from sensor.doorbell_sound (see doorbell_sound_sensor.yaml), falling back
+#   to "default". Without the sensor, just hardcode doorbell_default.mp3.
+
+rest_command:
+  doorbell_speaker_play:
+    url: >-
+      http://GO2RTC_HOST:11984/api/streams?dst=doorbell&src=ffmpeg%3Ahttp%3A%2F%2FHA_HOST%3A8123%2Flocal%2Fmedia%2Fdoorbell_{{ states('sensor.doorbell_sound') if states('sensor.doorbell_sound') not in ['unknown', 'unavailable', ''] else 'default' }}.mp3%23audio%3Dpcmu%23input%3Dfile
+    method: POST
+    username: ha
+    password: !secret go2rtc_api_password
+    timeout: 10

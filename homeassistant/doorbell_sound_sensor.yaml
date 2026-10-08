@@ -1,0 +1,66 @@
+# Optional: pick a different doorbell sound for holidays and birthdays.
+# Add under `template:` in configuration.yaml (merge with any existing template: list).
+#
+# State = a key. The rest_command plays /local/media/doorbell_<key>.mp3, so you need
+# one file per key you want to use (put them in <config>/www/media/).
+#
+# Priority: birthday > holiday > default.
+#
+# Things to edit:
+#   - the calendar entities (or delete the calendar.get_events action and `titles` variable)
+#   - `birthdays`: fixed dates, MM-DD
+#   - `party_words`: a calendar event today counts as a birthday party at your place if
+#     its title contains "birthday" AND one of these words
+#   - the holiday list itself. Easter-based days (carnival, Easter) are computed, so they
+#     move correctly every year.
+
+- trigger:
+    - trigger: homeassistant
+      event: start
+    - trigger: event
+      event_type: event_template_reloaded
+    - trigger: time_pattern
+      minutes: "/15"
+  action:
+    - action: calendar.get_events
+      target:
+        entity_id:
+          - calendar.your_calendar
+      data:
+        start_date_time: "{{ today_at('00:00') }}"
+        end_date_time: "{{ today_at('23:59') }}"
+      response_variable: cal
+      continue_on_error: true
+    - variables:
+        titles: >-
+          {{ (cal.values() | map(attribute='events') | sum(start=[]) | map(attribute='summary') | list)
+             if cal is defined and cal else [] }}
+  sensor:
+    - name: Doorbell sound
+      unique_id: doorbell_sound
+      icon: mdi:doorbell
+      state: >-
+        {%- set birthdays = {'03-14': 'Alice', '11-02': 'Bob'} -%}
+        {%- set party_words = 'at home|our place|alice|bob' -%}
+        {%- set d = now().date() -%}
+        {#- Easter Sunday, anonymous Gregorian algorithm (Meeus/Jones/Butcher) -#}
+        {%- set y = d.year -%}
+        {%- set a = y % 19 -%}{%- set b = y // 100 -%}{%- set c = y % 100 -%}
+        {%- set h = (19*a + b - b//4 - (b - (b+8)//25 + 1)//3 + 15) % 30 -%}
+        {%- set l = (32 + 2*(b % 4) + 2*(c // 4) - h - c % 4) % 7 -%}
+        {%- set m = (a + 11*h + 22*l) // 451 -%}
+        {%- set em = (h + l - 7*m + 114) // 31 -%}{%- set ed = (h + l - 7*m + 114) % 31 + 1 -%}
+        {%- set easter = as_datetime('%04d-%02d-%02d' % (y, em, ed)).date() -%}
+        {%- set de = (d - easter).days -%}
+        {%- set md = '%02d-%02d' % (d.month, d.day) -%}
+        {%- set party = titles | select('search', '(?i)birthday') | select('search', '(?i)' ~ party_words) | list -%}
+        {%- if md in birthdays or party -%}birthday
+        {%- elif '12-01' <= md <= '12-26' -%}christmas
+        {%- elif md >= '12-27' or md == '01-01' -%}newyear
+        {%- elif -55 <= de <= -49 -%}carnival
+        {%- elif -7 <= de <= 1 -%}easter
+        {%- elif md == '04-01' -%}aprilfools
+        {%- elif md == '05-04' -%}maythe4th
+        {%- elif '10-24' <= md <= '10-31' -%}halloween
+        {%- else -%}default
+        {%- endif -%}

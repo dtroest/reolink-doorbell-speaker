@@ -1,0 +1,22 @@
+# systemd user service for go2rtc.
+# Install:  cp go2rtc-doorbell.service ~/.config/systemd/user/
+#           systemctl --user daemon-reload
+#           systemctl --user enable --now go2rtc-doorbell
+#           loginctl enable-linger $USER   # keep it running when you're logged out
+#
+# Adjust the paths to wherever you put the go2rtc binary and config.
+
+[Unit]
+Description=go2rtc - audio to the Reolink doorbell speaker (RTSP backchannel)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/opt/go2rtc
+ExecStart=%h/opt/go2rtc/go2rtc -config %h/opt/go2rtc/go2rtc.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,21 @@
+# go2rtc config: Home Assistant -> go2rtc -> Reolink doorbell speaker (RTSP backchannel)
+#
+# Copy to go2rtc.yaml, fill in the placeholders and `chmod 600` it:
+# the RTSP URL contains the doorbell's password in plain text.
+
+api:
+  listen: ":11984"          # any free port; HA's rest_command calls this
+  username: ha
+  password: CHANGE_ME       # same value as go2rtc_api_password in HA's secrets.yaml
+
+# Nothing else needs to be exposed. Turning these off keeps go2rtc to the API only.
+rtsp:
+  listen: ""
+webrtc:
+  listen: ""
+
+streams:
+  doorbell:
+    # Preview_01_sub is the substream. Its RTSP session offers the backchannel
+    # (audio, sendonly, PCMU/8000) that go2rtc uses to talk to the speaker.
+    - rtsp://admin:DOORBELL_PASSWORD@DOORBELL_IP:554/Preview_01_sub

@@ -1,0 +1,50 @@
+# Ring -> play a sound outside (doorbell speaker) and inside (Sonos) at the same time.
+# Paste into automations.yaml, or recreate in the UI.
+#
+# The doorbell call goes first with continue_on_error, so the indoor chime still
+# plays if go2rtc is down. Drop the Sonos part if you only want sound outside.
+
+- id: doorbell_ring_sound
+  alias: Doorbell - Ring - Play sound
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.reolink_video_doorbell_wifi_visitor
+      to: "on"
+  variables:
+    indoor_speakers:
+      - media_player.living_room
+      - media_player.kitchen
+  actions:
+    - action: rest_command.doorbell_speaker_play
+      continue_on_error: true
+
+    # Indoor: snapshot -> play -> restore, so whatever was playing resumes afterwards.
+    # sonos.snapshot/restore only work on entities from the Sonos integration itself,
+    # not on Music Assistant or group entities.
+    - action: sonos.snapshot
+      target:
+        entity_id: "{{ indoor_speakers }}"
+      data:
+        with_group: true
+    - action: media_player.unjoin
+      target:
+        entity_id: "{{ indoor_speakers }}"
+    - action: media_player.volume_set
+      target:
+        entity_id: "{{ indoor_speakers }}"
+      data:
+        volume_level: 0.4
+    - action: media_player.play_media
+      target:
+        entity_id: "{{ indoor_speakers }}"
+      data:
+        media_content_id: http://HA_HOST:8123/local/media/doorbell.mp3
+        media_content_type: music
+    - delay:
+        seconds: 15
+    - action: sonos.restore
+      target:
+        entity_id: "{{ indoor_speakers }}"
+      data:
+        with_group: true
+  mode: single
